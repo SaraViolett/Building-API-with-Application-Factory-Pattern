@@ -56,7 +56,7 @@ def create_mechanic():
     
     return mechanic_schema.jsonify(new_mechanic), 201
 
-#read/Get
+#Read/Get all mechanics
 @mechanics_bp.route("/", methods=['GET'])
 @limiter.exempt #this is likely a frequently used operation during the day in the shop that you wouldn't want to limit because that could impact business
 def get_mechanics():
@@ -70,7 +70,7 @@ def get_mechanic(mechanic_id):
     mechanic = db.session.get(Mechanic, mechanic_id)
     if mechanic:
         return view_mechanic_schema.jsonify(mechanic), 200
-    return jsonify({"error": "Invalid mechaninc_id."}), 400
+    return jsonify({"error": "Invalid mechanic_id."}), 400
 
 #update
 @mechanics_bp.route("/", methods=['PUT'])
@@ -91,6 +91,9 @@ def update_mechanic():
     if db_mechanic and db_mechanic != mechanic:
         return jsonify({"error": "Email already associated with another account."}), 400
     
+    hashed_password = generate_password_hash(mechanic_data['password'])
+    mechanic_data['password'] = hashed_password 
+    
     for field, value in mechanic_data.items():
         setattr(mechanic, field, value)
         
@@ -102,14 +105,14 @@ def update_mechanic():
 @limiter.limit("5 per hour") #probably wouldn't delete(fire) mechanics frequently. Assumption is that this is a small shop with < 15 employees
 @token_required
 def delete_mechanic():
-    mechanic = db.session.get(Mechanic, request.mechanic_id)
+    mechanic = db.session.get(Mechanic, request.id)
     
     if not mechanic:
-        return jsonify({"error": "Invalid mechanic_id."}), 400
+        return jsonify({"error": "Invalid mechanic id."}), 400
     
     db.session.delete(mechanic)
     db.session.commit()
-    return jsonify({"message": f"Mechanic {request.mechanic_id} was deleted."})
+    return jsonify({"message": f"Mechanic {mechanic.name} was deleted."}), 200
 
 #query mechanics with most tickets
 @mechanics_bp.route("/activity-tracker", methods=["GET"])
@@ -128,7 +131,7 @@ def search_mechanic():
     query = select(Mechanic).where(Mechanic.name.ilike(f"%{name}%"))
     mechanics = db.session.execute(query).scalars().all()
     
-    return jsonify({"mechanics": view_mechanics_schema.dump(mechanics)})
+    return jsonify({"mechanics": view_mechanics_schema.dump(mechanics)}), 200
     
 #read/Get mechanics paginated
 @mechanics_bp.route("/paginated", methods=['GET'])
@@ -139,4 +142,4 @@ def get_mechanics_paginated():
     
     query = select(Mechanic)
     mechanics = db.paginate(query, page=page, per_page=per_page)
-    return view_mechanics_schema.jsonify(mechanics)
+    return view_mechanics_schema.jsonify(mechanics), 200 

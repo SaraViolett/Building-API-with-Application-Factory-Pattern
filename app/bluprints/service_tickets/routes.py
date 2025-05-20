@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from . import service_tickets_bp
-from .schemas import service_ticket_schema, update_service_ticket_schema, view_service_ticket_schema, view_service_tickets_schema, service_ticket_receipt_schema
+from .schemas import service_ticket_schema, update_service_ticket_schema, view_service_ticket_schema, view_service_tickets_schema, service_ticket_receipt_schema, service_ticket_response_schema
 from app.models import db, ServiceTicket, Customer, Mechanic, PartDescription, Service
 from sqlalchemy import select, delete
 from marshmallow import ValidationError
@@ -20,7 +20,7 @@ def create_ticket():
         new_ticket = ServiceTicket(**ticket_data)
         db.session.add(new_ticket)
         db.session.commit()
-        return service_ticket_schema.jsonify(new_ticket), 201
+        return service_ticket_response_schema.jsonify(new_ticket), 201
     return jsonify({"error": "Invalid customer id."})
 
 #get tickets
@@ -79,7 +79,7 @@ def update_ticket(ticket_id):
         setattr(ticket, field, value)
         
     db.session.commit()
-    return view_service_ticket_schema.jsonify(ticket), 200
+    return service_ticket_response_schema.jsonify(ticket), 200
 
 #add mechanic to ticket
 @service_tickets_bp.route("/<int:ticket_id>/add-mechanic/<int:mechanic_id>", methods=['PUT'])
@@ -127,7 +127,7 @@ def add_part(ticket_id, part_id):
                 ticket.serialized_parts.append(serialized_part)
                 db.session.commit()
                 return jsonify({
-                        "message": f"Successfully added {part.part_name} to the ticket(order id: {ticket.id}).",
+                        "message": f"Successfully added one {part.part_name} to the ticket(order id: {ticket.id}).",
                         "ticket": view_service_ticket_schema.dump(ticket),
                     }), 200
         return jsonify({"error": f"{part.part_name} out of stock."}),400
@@ -147,7 +147,7 @@ def remove_part(ticket_id, part_id):
                 ticket.serialized_parts.remove(serialized_part)
                 db.session.commit()
                 return jsonify({
-                        "message": f"Successfully removed {part.part_name} from the ticket(order id: {ticket.id}).",
+                        "message": f"Successfully removed one {part.part_name} from the ticket(order id: {ticket.id}).",
                         "ticket": view_service_ticket_schema.dump(ticket),
                     }), 200
         return jsonify({"error": f"{part.part_name} not associated with this ticket."}),400
@@ -193,6 +193,8 @@ def delete_service_ticket(ticket_id):
     query = select(ServiceTicket).where(ServiceTicket.id == ticket_id)
     service_ticket = db.session.execute(query).scalars().first()
 
-    db.session.delete(service_ticket)
-    db.session.commit()
-    return jsonify({"message": f"Succesfully deleted service_ticket {ticket_id}"})
+    if service_ticket: 
+        db.session.delete(service_ticket)
+        db.session.commit()
+        return jsonify({"message": f"Succesfully deleted service Ticket {ticket_id}"})
+    return jsonify({"error": "invalid ticket_id"}), 400

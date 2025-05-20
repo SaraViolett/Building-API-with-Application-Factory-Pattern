@@ -2,11 +2,11 @@ from flask import Flask, jsonify, request
 from marshmallow import ValidationError
 from sqlalchemy import select
 from . import customers_bp
-from .schemas import customer_schema, customers_schema, login_schema, view_customers_schema
+from .schemas import customer_schema, login_schema, view_customers_schema
 from app.models import Customer, db
 from app.extensions import limiter
 from app.utils.util import encode_token, token_required
-from app.bluprints.service_tickets.schemas import view_service_tickets_schema
+from app.bluprints.service_tickets.schemas import service_tickets_customer_schema
 from werkzeug.security import generate_password_hash, check_password_hash
 
 #customer login
@@ -103,8 +103,8 @@ def get_customer_tickets():
     customer = db.session.get(Customer, customer_id)
     if customer:
         if customer.tickets:
-            return jsonify({"tickets": view_service_tickets_schema.dump(customer.tickets)})
-        return jsonify({"error": "You have no service tickets"})
+            return jsonify({"tickets": service_tickets_customer_schema.dump(customer.tickets)}), 200
+        return jsonify({"error": "You have no service tickets"}), 200
     return jsonify({"error": "Invalid customer ID"}), 400
 
 #update
@@ -126,6 +126,9 @@ def update_customer():
     if db_customer and db_customer != customer:
         return jsonify({"error": "Email already associated with another account."}), 400
     
+    hashed_password = generate_password_hash(customer_data['password'])
+    customer_data['password'] = hashed_password 
+    
     for field, value in customer_data.items():
         setattr(customer, field, value)
         
@@ -137,11 +140,11 @@ def update_customer():
 @token_required
 @limiter.limit("3 per hour") #probably wouldn't delete that many customers since this is a small shop
 def delete_customer():
-    customer = db.session.get(Customer, request.customer_id)
+    customer = db.session.get(Customer, request.id)
     
     if not customer:
         return jsonify({"error": "Invalid customer_id."}), 400
     
     db.session.delete(customer)
     db.session.commit()
-    return jsonify({"message": f"Customer {request.customer_id} was deleted."})
+    return jsonify({"message": f"Customer {customer.name} was deleted."}), 200

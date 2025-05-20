@@ -52,7 +52,7 @@ class ServiceTicket(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     service_date: Mapped[date] = mapped_column(nullable=False)
     VIN: Mapped[str] = mapped_column(db.String(18), nullable=False)
-    servic_desc: Mapped[str] = mapped_column(db.String(320), nullable=False)
+    service_desc: Mapped[str] = mapped_column(db.String(320), nullable=False)
     customer_id: Mapped[int] = mapped_column(db.ForeignKey("customers.id"))
     
     customer: Mapped['Customer'] = db.relationship(back_populates='tickets')
