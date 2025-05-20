@@ -1,4 +1,4 @@
-# Coding Temple - Backend Specialization Module 1 Assignment: Building API with Application Factory Pattern
+# Coding Temple - Backend Specialization Assignment: Building API with Application Factory Pattern
 
 ## Overview
 
