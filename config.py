@@ -1,3 +1,4 @@
+import os
 
 class DevelopmentConfig:
     SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:leaRning1!@localhost/mechanics_shop_db'
@@ -11,4 +12,5 @@ class TestingConfig:
     CACHE_TYPE = 'SimpleCache'
 
 class ProductionConfig:
-    pass
+    SQLALCHEMY_DATABASE_URI = os.env.get("SQLALCHEMY_DATABASE_URI") or 'sqlite:///app.db'
+    CACHE_TYPE = 'SimpleCache'
